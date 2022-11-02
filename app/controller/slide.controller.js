@@ -1,14 +1,67 @@
 const db = require("../config/db.connect");
-const { SaveData, GetList, CountData, AutoGetID, UpdateList } = require("../action/database.action")
-const { isEmpty } = require("../config/help")
+const { SaveData, GetList, CountData, AutoGetID, UpdateList, Search } = require("../action/database.action")
+const { isEmpty } = require("../config/help");
+const SearchSlideByName = (req, res) => {
+    var { name, s, e } = req.body;
+    var message = {};
+    if (isEmpty(e)) {
+        message.e = "end is require and have to greater than zero"
+    } else if (isEmpty(name)) {
+        message.name = "name is require"
+    } else if (isEmpty(s)) {
+        s = 0
+    } else if (s > e) {
+        message.cannot = "start value can not greater than end value"
+    }
+    if (Object.keys(message).length > 0) {
+        res.json({
+            error: true,
+            message: message
+        })
+    } else {
+        const tbl = "tbl_slide";
+        const fld = "*";
+        const cond = `name LIKE '%${name}%'`;
+        const od = "id DESC"
+        Search(fld, tbl, cond, od, s, e, res);
+    }
+}
+const SearchSlideByID = (req, res) => {
+    var { id, s, e } = req.body;
+    var message = {};
+    if (isEmpty(e)) {
+        message.e = "end is require and have to greater than zero"
+    } else if (isEmpty(id)) {
+        message.id = "id is require"
+    } else if (isEmpty(s)) {
+        s = 0
+    } else if (s > e) {
+        message.cannot = "start value can not greater than end value"
+    }
+    if (Object.keys(message).length > 0) {
+        res.json({
+            error: true,
+            message: message
+        })
+    } else {
+        const tbl = "tbl_slide";
+        const fld = "*";
+        const cond = `id LIKE '%${id}%'`;
+        const od = "id DESC"
+        Search(fld, tbl, cond, od, s, e, res);
+    }
+}
 const SaveSlide = (req, res) => {
     var { id, name, od, name_link, status } = req.body;
-    var photo = req.file.filename;
     var message = {};
+    var photo = "";
+    if (!req.file) {
+        message.photo = " No upload file";
+    } else {
+        photo = req.file.filename;
+    }
     if (isEmpty(name)) {
         message.name = "name is require";
-    } else if (isEmpty(photo)) {
-        message.photo = "photo is require";
     } else if (isEmpty(od)) {
         message.od = "od is require";
     } else if (isEmpty(name_link)) {
@@ -68,9 +121,8 @@ const GetSlide = (req, res) => {
 const TotalRecord = (req, res) => {
     var { id } = req.body;
     const tbl = "tbl_slide";
-    var cond = "id>?";
-    val = 0;
-    CountData(tbl, cond, val, res);
+    var cond = "id>0";
+    CountData(tbl, cond, res);
 };
 const GetAutoID = (req, res) => {
     //(tbl, fld, od, res
@@ -82,11 +134,14 @@ const GetAutoID = (req, res) => {
 const UpdateSlide = (req, res) => {
     var { name, od, name_link, status, id } = req.body;
     var message = {};
-    var photo = req.file.filename;
+    var photo = "";
+    if (!req.file) {
+        message.photo = " No upload file";
+    } else {
+        photo = req.file.filename;
+    }
     if (isEmpty(name)) {
         message.name = "name is require";
-    } else if (isEmpty(photo)) {
-        message.photo = "photo is require";
     } else if (isEmpty(od)) {
         message.od = "order by is require";
     } else if (isEmpty(name_link)) {
@@ -126,10 +181,5 @@ const UpdateSlide = (req, res) => {
         })
     }
 }
-const CountSlide = (req, res) => {
-    const tbl = "tbl_slide";
-    const cond = "status=?";
-    const val = 1;
-    CountData(tbl, cond, val, res)
-}
-module.exports = { SaveSlide, GetSlide, TotalRecord, GetAutoID, UpdateSlide, CountSlide }
+
+module.exports = { SaveSlide, GetSlide, TotalRecord, GetAutoID, UpdateSlide, SearchSlideByName, SearchSlideByID }

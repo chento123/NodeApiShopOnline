@@ -8,14 +8,16 @@ const category = (app) => {
         TotalRecord,
         GetAutoID,
         UpdateCate,
-        CountCate
+        SearchCateByName,
+        SearchCateByID
     } = require("../controller/cate.controller");
     router.get("/category", validateToken, GetCate);
     router.post("/category", validateToken, upload.single("image"), SaveCate);
     router.get("/category-total", validateToken, TotalRecord);
     router.get("/category-autoID", validateToken, GetAutoID);
-    router.put("/category-updatecate", validateToken, upload.single("image"), UpdateCate);
-    router.get("/get-count-cate", validateToken, CountCate);
+    router.put("/category", validateToken, upload.single("image"), UpdateCate);
+    router.get("/category-search-name", validateToken, SearchCateByName);
+    router.get("/category-search-id", validateToken, SearchCateByID)
     app.use(router);
 };
 module.exports = category;

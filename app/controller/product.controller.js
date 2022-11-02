@@ -3,21 +3,25 @@ const {
     CountData,
     GetList,
     SaveData,
-    UpdateList
+    UpdateList,
+    Search
 } = require("../action/database.action");
 const { isEmpty } = require("../config/help");
 const tbl = "tbl_product"
 const db = require("../config/db.connect")
 const SaveProduct = (req, res) => {
-    var { id, name, dis, price_dis, photo, sub_id, cate_id, slide_id, od, name_link, uid, des, click, status } = req.body;
+    var { id, name, price, dis, price_dis, photo, sub_id, cate_id, slide_id, od, name_link, uid, des, click, status } = req.body;
     var message = {}
-    var photo = req.file.filename;
+    var photo = "";
+    if (!req.file) {
+        message.photo = " No upload file";
+    } else {
+        photo = req.file.filename;
+    }
     if (isEmpty(name)) {
         message.name = "name is require"
     } else if (isEmpty(price)) {
         message.price = "price is require"
-    } else if (isEmpty(photo)) {
-        message.dis = "photo is require"
     } else if (isEmpty(sub_id)) {
         message.sub_id = "sub category id is require"
     } else if (isEmpty(cate_id)) {
@@ -61,7 +65,7 @@ const SaveProduct = (req, res) => {
                         message: "Duplicate name !!",
                     })
                 } else {
-                    const val = [name, price, dis, price_dis, photo, sub_id, cate_id, od, name_link, uid, des, click, status]
+                    const val = [name, price, dis, price_dis, photo, sub_id, cate_id, slide_id, od, name_link, uid, des, click, status]
                     const mark = "NULL,?"
                     SaveData(tbl, val, mark, res);
                 }
@@ -72,15 +76,15 @@ const SaveProduct = (req, res) => {
 const GetProduct = (req, res) => {
     var { s, e } = req.body;
     var tbl1 = ` 
-    tbl_product INNER JOIN tbl_product ON tbl_product.id=tbl_product.product_id 
+    tbl_product INNER JOIN tbl_user ON tbl_product.uid=tbl_user.id 
     INNER JOIN tbl_category ON tbl_category.id=tbl_product.cate_id 
     INNER JOIN tbl_sub_category ON tbl_product.sub_id=tbl_sub_category.id`;
     var fld = ` 
+        tbl_category.name AS Category,
+        tbl_sub_category.name AS "Sub Category",
+        tbl_user.fullname,
         tbl_product.id,
-        tbl_product.name,
-        tbl_category.name,
-        tbl_sub_category.name,
-        tbl_product.name,
+        tbl_product.name AS Product,
         tbl_product.price,
         tbl_product.dis,
         tbl_product.price_dis,
@@ -104,11 +108,9 @@ const GetProduct = (req, res) => {
     }
 }
 const TotalRecord = (req, res) => {
-    var { id } = req.body;
     const tbl = "tbl_product";
-    var cond = "id>?";
-    val = 0;
-    CountData(tbl, cond, val, res);
+    var cond = "id > 0";
+    CountData(tbl, cond, res);
 };
 const GetAutoID = (req, res) => {
     //(tbl, fld, od, res
@@ -116,16 +118,17 @@ const GetAutoID = (req, res) => {
     var od = "id DESC";
     AutoGetID(tbl, fld, od, res);
 };
-const CountProduct = (req, res) => {
-    const cond = "status=?";
-    const val = 1;
-    CountData(tbl, cond, val, res)
-}
+
 
 const UpdateProduct = (req, res) => {
     var { id, name, price, dis, price_dis, sub_id, cate_id, slide_id, od, name_link, uid, des, click, status } = req.body;
     var message = {};
-    var photo = req.file.filename;
+    var photo = "";
+    if (!req.file) {
+        message.photo = " No upload file";
+    } else {
+        photo = req.file.filename;
+    }
     if (isEmpty(name)) {
         message.name = "name is require"
     } else if (isEmpty(price)) {
@@ -152,6 +155,8 @@ const UpdateProduct = (req, res) => {
         price_dis = 0
     } else if (isEmpty(click)) {
         click = 0
+    } else if (isEmpty(id)) {
+        message.id = "id is require"
     }
     if (Object.keys(message).length > 0) {
         res.json({
@@ -183,11 +188,90 @@ const UpdateProduct = (req, res) => {
         })
     }
 }
+const SearchProductByName = (req, res) => {
+    var { name, s, e } = req.body;
+    var message = {};
+    if (isEmpty(e)) {
+        message.e = "end is require and have to greater than zero"
+    } else if (isEmpty(name)) {
+        message.name = "name is require"
+    } else if (isEmpty(s)) {
+        s = 0
+    } else if (s > e) {
+        message.cannot = "start value can not greater than end value"
+    }
+    if (Object.keys(message).length > 0) {
+        res.json({
+            error: true,
+            message: message
+        })
+    } else {
+        var tbl = ` 
+    tbl_product INNER JOIN tbl_user ON tbl_product.uid=tbl_user.id 
+    INNER JOIN tbl_category ON tbl_category.id=tbl_product.cate_id 
+    INNER JOIN tbl_sub_category ON tbl_product.sub_id=tbl_sub_category.id`;
+        var fld = ` 
+        tbl_category.name AS Category,
+        tbl_sub_category.name AS "Sub Category",
+        tbl_user.fullname,
+        tbl_product.id,
+        tbl_product.name AS Product,
+        tbl_product.price,
+        tbl_product.dis,
+        tbl_product.price_dis,
+        tbl_product.od,
+        tbl_product.photo,
+        tbl_product.status`;
+        const cond = `tbl_product.name LIKE '%${name}%'`;
+        var od = "tbl_product.id DESC";
+        Search(fld, tbl, cond, od, s, e, res);
+    }
+}
+const SearchProductByID = (req, res) => {
+    var { id, s, e } = req.body;
+    var message = {};
+    if (isEmpty(e)) {
+        message.e = "end is require and have to greater than zero"
+    } else if (isEmpty(id)) {
+        message.id = "id is require"
+    } else if (isEmpty(s)) {
+        s = 0
+    } else if (s > e) {
+        message.cannot = "start value can not greater than end value"
+    }
+    if (Object.keys(message).length > 0) {
+        res.json({
+            error: true,
+            message: message
+        })
+    } else {
+        var tbl = ` 
+        tbl_product INNER JOIN tbl_user ON tbl_product.uid=tbl_user.id 
+        INNER JOIN tbl_category ON tbl_category.id=tbl_product.cate_id 
+        INNER JOIN tbl_sub_category ON tbl_product.sub_id=tbl_sub_category.id`;
+        var fld = ` 
+            tbl_category.name AS Category,
+            tbl_sub_category.name AS "Sub Category",
+            tbl_user.fullname,
+            tbl_product.id,
+            tbl_product.name AS Product,
+            tbl_product.price,
+            tbl_product.dis,
+            tbl_product.price_dis,
+            tbl_product.od,
+            tbl_product.photo,
+            tbl_product.status`;
+        const cond = `tbl_product.id LIKE '%${id}%'`;
+        var od = "tbl_product.id DESC";
+        Search(fld, tbl, cond, od, s, e, res);
+    }
+}
 module.exports = {
     SaveProduct,
     GetProduct,
     TotalRecord,
     GetAutoID,
-    CountProduct,
-    UpdateProduct
+    UpdateProduct,
+    SearchProductByID,
+    SearchProductByName
 }

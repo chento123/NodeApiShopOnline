@@ -8,6 +8,7 @@ const {
     CountData,
     AutoGetID,
     UpdateList,
+    Search
 } = require("../action/database.action");
 const GetCate = (req, res) => {
     var { s, e } = req.body;
@@ -31,10 +32,13 @@ const GetCate = (req, res) => {
 };
 const SaveCate = (req, res) => {
     const { id, name, od, name_link, status } = req.body;
-
     var message = {};
-    var image = req.file.filename;
-
+    var photo = "";
+    if (!req.file) {
+        message.photo = " No upload file";
+    } else {
+        photo = req.file.filename;
+    }
     if (isEmpty(name)) {
         message.name = "name is require";
     } else if (isEmpty(od)) {
@@ -43,8 +47,6 @@ const SaveCate = (req, res) => {
         message.name_link = "Name Link is require";
     } else if (isEmpty(status)) {
         message.status = "status is require";
-    } else if (isEmpty(image)) {
-        message.image = "image is require"
     }
     if (Object.keys(message).length > 0) {
         res.json({
@@ -67,7 +69,7 @@ const SaveCate = (req, res) => {
                     })
                 } else {
                     const tbl = "tbl_category";
-                    var val = [name, image, od, name_link, status];
+                    var val = [name, photo, od, name_link, status];
                     const mark = "NULL,?"
                     SaveData(tbl, val, mark, res);
                 }
@@ -77,11 +79,9 @@ const SaveCate = (req, res) => {
 };
 const TotalRecord = (req, res) => {
     //tbl, cond, val, res
-    var { id } = req.body;
     const tbl = "tbl_category";
-    var cond = "id>?";
-    val = 0;
-    CountData(tbl, cond, val, res);
+    var cond = "id>0";
+    CountData(tbl, cond, res);
 };
 const GetAutoID = (req, res) => {
     //(tbl, fld, od, res
@@ -93,11 +93,14 @@ const GetAutoID = (req, res) => {
 const UpdateCate = (req, res) => {
     const { name, od, name_link, status, id } = req.body;
     var message = {};
-    var image = req.file.filename;
+    var photo = "";
+    if (!req.file) {
+        message.photo = " No upload file";
+    } else {
+        photo = req.file.filename;
+    }
     if (isEmpty(name)) {
         message.name = "name is require";
-    } else if (isEmpty(image)) {
-        message.image = "photo is require";
     } else if (isEmpty(od)) {
         message.od = "order by is require";
     } else if (isEmpty(name_link)) {
@@ -129,7 +132,7 @@ const UpdateCate = (req, res) => {
                 } else {
                     const tbl = "tbl_category";
                     var fld = `name=?,photo=?,od=?,name_link=?,status=?`;
-                    var val = [name, image, od, name_link, status, id];
+                    var val = [name, photo, od, name_link, status, id];
                     var cond1 = "id=?";
                     UpdateList(tbl, fld, cond1, val, res);
                 }
@@ -138,11 +141,56 @@ const UpdateCate = (req, res) => {
     }
 };
 //tbl, cond, val, res
-const CountCate = (req, res) => {
-    const tbl = "tbl_category";
-    const cond = "status=?";
-    const val = 1;
-    CountData(tbl, cond, val, res)
+
+const SearchCateByName = (req, res) => {
+    var { name, s, e } = req.body;
+    var message = {};
+    if (isEmpty(e)) {
+        message.e = "end is require and have to greater than zero"
+    } else if (isEmpty(name)) {
+        message.name = "name is require"
+    } else if (isEmpty(s)) {
+        s = 0
+    } else if (s > e) {
+        message.cannot = "start value can not greater than end value"
+    }
+    if (Object.keys(message).length > 0) {
+        res.json({
+            error: true,
+            message: message
+        })
+    } else {
+        const tbl = "tbl_category";
+        const fld = "*";
+        const cond = `name LIKE '%${name}%'`;
+        const od = "id DESC"
+        Search(fld, tbl, cond, od, s, e, res);
+    }
+}
+const SearchCateByID = (req, res) => {
+    var { id, s, e } = req.body;
+    var message = {};
+    if (isEmpty(e)) {
+        message.e = "end is require and have to greater than zero"
+    } else if (isEmpty(id)) {
+        message.id = "id is require"
+    } else if (isEmpty(s)) {
+        s = 0
+    } else if (s > e) {
+        message.cannot = "start value can not greater than end value"
+    }
+    if (Object.keys(message).length > 0) {
+        res.json({
+            error: true,
+            message: message
+        })
+    } else {
+        const tbl = "tbl_category";
+        const fld = "*";
+        const cond = `id LIKE '%${id}%'`;
+        const od = "id DESC"
+        Search(fld, tbl, cond, od, s, e, res);
+    }
 }
 module.exports = {
     GetCate,
@@ -150,5 +198,6 @@ module.exports = {
     TotalRecord,
     GetAutoID,
     UpdateCate,
-    CountCate
+    SearchCateByName,
+    SearchCateByID
 };

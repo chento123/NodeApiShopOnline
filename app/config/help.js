@@ -1,6 +1,6 @@
 const db = require("./db.connect");
 const isEmpty = (value) => {
-    if (value == "" || value == null || value == undefined) {
+    if ((value == "" || value == null) || value == undefined) {
         return true;
     }
     return false;
